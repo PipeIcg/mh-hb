@@ -6,11 +6,14 @@ import com.example.homebanking.models.CardType;
 import com.example.homebanking.models.Client;
 import com.example.homebanking.repositories.CardRepository;
 import com.example.homebanking.repositories.ClientRepository;
+import com.example.homebanking.services.CardService;
+import com.example.homebanking.services.ClientService;
 import com.example.homebanking.utils.CardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -23,18 +26,19 @@ import java.util.stream.Collectors;
 @RequestMapping("/api")
 public class CardController {
 
-    @Autowired
-    ClientRepository clientRepository;
 
     @Autowired
-    CardRepository cardRepository;
+    ClientService clientService;
+
+    @Autowired
+    CardService cardService;
 
     @PostMapping(path = "/clients/current/cards")
     public ResponseEntity<Object>createCard(Authentication authentication,
             @RequestParam CardType type, @RequestParam CardColor color
             ){
 
-        Client client = clientRepository.findByEmail(authentication.getName());
+        Client client = clientService.findByEmail(authentication.getName());
         List<Card> cardList = client.getCards().stream().filter(card -> card.getType() == type).collect(Collectors.toList());
         List<Card> cardListTrue = cardList.stream().filter(card -> card.isState()).collect(Collectors.toList());
         Random random = new Random();
@@ -56,7 +60,7 @@ public class CardController {
         }
         else{
             Card card = new Card(client.getFirst_name() + " " + client.getLast_name(),type,color,cardNumber ,cvv, LocalDateTime.now(),fiveYears,true,client);
-            cardRepository.save(card);
+            cardService.saveCard(card);
             return new ResponseEntity<>("201 Nice job!", HttpStatus.CREATED);
         }
 
@@ -64,10 +68,10 @@ public class CardController {
 
     @PatchMapping(path = "/clients/current/cards/delete/{id}")
     public ResponseEntity<Object> deleteCard(@PathVariable Long id){
-        Card card = cardRepository.findById(id).orElse(null);
+        Card card = cardService.findById(id);
 
         card.setState(false);
-        cardRepository.save(card);
+        cardService.saveCard(card);
         return new ResponseEntity<>("Deleted!",HttpStatus.CREATED);
 
     }

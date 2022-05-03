@@ -8,6 +8,9 @@ import com.example.homebanking.models.TransactionType;
 import com.example.homebanking.repositories.AccountRepository;
 import com.example.homebanking.repositories.ClientRepository;
 import com.example.homebanking.repositories.TransactionRepository;
+import com.example.homebanking.services.AccountService;
+import com.example.homebanking.services.ClientService;
+import com.example.homebanking.services.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,12 +29,15 @@ import java.util.stream.Collectors;
 @RequestMapping("/api")
 public class TransactionController {
 
+    //service
     @Autowired
-    ClientRepository clientRepository;
+    ClientService clientService;
+
     @Autowired
-    AccountRepository accountRepository;
+    AccountService accountService;
+
     @Autowired
-    TransactionRepository transactionRepository;
+    TransactionService transactionService;
 
     @Transactional
     @RequestMapping( "/transactions")
@@ -39,9 +45,9 @@ public class TransactionController {
             Authentication authentication,
             @RequestParam Double amount, @RequestParam String description,
             @RequestParam String originAccount, @RequestParam String destinationAccount){
-        Client clientAutentificado = clientRepository.findByEmail(authentication.getName());
-        Account origen = accountRepository.findByNumber(originAccount);
-        Account destino = accountRepository.findByNumber(destinationAccount);
+        Client clientAutentificado = clientService.findByEmail(authentication.getName());
+        Account origen = accountService.findByNumber(originAccount);
+        Account destino = accountService.findByNumber(destinationAccount);
 
         Set<Account> cuentas = clientAutentificado.getAccounts().stream().filter(cuenta ->cuenta.getNumber().contains(originAccount)).collect(Collectors.toSet());
 
@@ -71,13 +77,13 @@ public class TransactionController {
             destino.setBalance(newDestinationAmount);
 
             Transaction debitTransaction = new Transaction(TransactionType.DEBIT,amount,description, LocalDateTime.now(),origen);
-            transactionRepository.save(debitTransaction);
+            transactionService.saveTransaction(debitTransaction);
 
             Transaction creditTransaction = new Transaction(TransactionType.CREDIT,amount,description,LocalDateTime.now(),destino );
-            transactionRepository.save(creditTransaction);
+            transactionService.saveTransaction(creditTransaction);
 
-            accountRepository.save(origen);
-            accountRepository.save(destino);
+            accountService.saveAccount(origen);
+            accountService.saveAccount(destino);
 
             return new ResponseEntity<>("created", HttpStatus.CREATED);
 
